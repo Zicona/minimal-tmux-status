@@ -21,6 +21,8 @@ get_tmux_option() {
 # The variables are:
 # - @minimal-tmux-bg: background color of the status line
 # - @minimal-tmux-fg: foreground color of the status line
+# - @minimal-tmux-bg-active: background color of the status line when prefix is pressed
+# - @minimal-tmux-fg-active: foreground color of the status line when prefix is pressed
 # - @minimal-tmux-status: position of the status line (top or bottom)
 # - @minimal-tmux-justify: justification of the status line (left, centre or right)
 # - @minimal-tmux-indicator: whether to show the indicator of the prefix
@@ -32,6 +34,7 @@ get_tmux_option() {
 # - @minimal-tmux-status-right-extra: extra content of the right side of the status line
 # - @minimal-tmux-status-left-extra: extra content of the left side of the status line
 # - @minimal-tmux-window-status-format: format of the window status
+# - @minimal-tmux-use-dynamic-current-format: changes the colors of the current status line with fg-active and bg-active
 # - @minimal-tmux-expanded-icon: icon for expanded windows
 # - @minimal-tmux-show-expanded-icon-for-all-tabs: whether to show the expanded icon for all tabs
 # - @minimal-tmux-use-arrow: whether to use arrows in the status line
@@ -43,6 +46,8 @@ default_color="#[bg=default,fg=default,bold]"
 # variables
 bg=$(get_tmux_option "@minimal-tmux-bg" '#698DDA')
 fg=$(get_tmux_option "@minimal-tmux-fg" '#000000')
+bg_active=$(get_tmux_option "@minimal-tmux-bg-active" '#ABE9B3')
+fg_active=$(get_tmux_option "@minimal-tmux-fg-active" '#000000')
 
 use_arrow=$(get_tmux_option "@minimal-tmux-use-arrow" false)
 larrow="$("$use_arrow" && get_tmux_option "@minimal-tmux-left-arrow" "")"
@@ -64,6 +69,7 @@ status_right_extra="$status_right$(get_tmux_option "@minimal-tmux-status-right-e
 status_left_extra="$status_left$(get_tmux_option "@minimal-tmux-status-left-extra" "")"
 
 window_status_format=$(get_tmux_option "@minimal-tmux-window-status-format" ' #I:#W ')
+use_dynamic_current_format=$(get_tmux_option "@minimal-tmux-use-dynamic-current-format" true)
 
 expanded_icon=$(get_tmux_option "@minimal-tmux-expanded-icon" '󰊓 ')
 show_expanded_icon_for_all_tabs=$(get_tmux_option "@minimal-tmux-show-expanded-icon-for-all-tabs" false)
@@ -79,4 +85,9 @@ tmux set-option -g status-right "$status_right_extra"
 tmux set-option -g window-status-format "$window_status_format"
 "$show_expanded_icon_for_all_tabs" && tmux set-option -g window-status-format " ${window_status_format}#{?window_zoomed_flag,${expanded_icon},}"
 
-tmux set-option -g window-status-current-format "#[fg=${bg}]$larrow#[bg=${bg},fg=${fg}]${window_status_format}#{?window_zoomed_flag,${expanded_icon},}#[fg=${bg},bg=default]$rarrow"
+if eval "$use_dynamic_current_format"; then
+  # Format with client_prefix conditional
+  tmux set-option -g window-status-current-format "#{?client_prefix,#[fg=${fg_active} bg=${bg_active}],#[bg=${bg},fg=${fg}]}${window_status_format}#{?window_zoomed_flag,${expanded_icon},}"
+else
+  tmux set-option -g window-status-current-format "#[fg=${bg}]$larrow#[bg=${bg},fg=${fg}]${window_status_format}#{?window_zoomed_flag,${expanded_icon},}#[fg=${bg},bg=default]$rarrow"
+fi
